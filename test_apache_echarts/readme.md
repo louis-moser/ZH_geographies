@@ -8,9 +8,6 @@ Figure 1 shows the starting point. The entire country and all the units are acti
 
 <center>
     <img src="images/1_start.png" alt="Figure 1">
-    <i>
-    Figure 1
-    </i>
 </center>
 <br>
 
@@ -18,9 +15,6 @@ Figure 2 shows the filtering of the units for the Zürich canton.
 
 <center>
     <img src="images/2_filter.png" alt="Figure 2">
-    <i>
-    Figure 2
-    </i>
 </center>
 <br>
 
@@ -28,19 +22,12 @@ Figures 3 and 4 show the highlighting of the canton for a unit (or a category of
 
 <center>
     <img src="images/3_selection.png" alt="Figure 3">
-    <i>
-    Figure 3
-    </i>
 </center>
 
 <center>
     <img src="images/4_highlight.png" alt="Figure 4">
-    <i>
-    Figure 4
-    </i>
 </center>
-
-
+<br>
 
 N.B.:
 * Instead of Switzerland, one could chose Zürich and its communes.
