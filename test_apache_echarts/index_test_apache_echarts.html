@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+
+  <title>Swiss Planning Dashboard</title>
+
+  <!-- Apache ECharts -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+  <style>
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #wrap {
+      display: flex;
+      width: 100%;
+      height: 100vh;
+    }
+
+    #mapChart {
+      width: 50%;
+      height: 100%;
+    }
+
+    #sunburstChart {
+      width: 50%;
+      height: 100%;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div id="wrap">
+
+  <div id="mapChart"></div>
+
+  <div id="sunburstChart"></div>
+
+</div>
+
+<script>
+
+// =====================================================
+// CHARTS
+// =====================================================
+
+const mapChart =
+  echarts.init(document.getElementById('mapChart'));
+
+const sunburstChart =
+  echarts.init(document.getElementById('sunburstChart'));
+
+
+// =====================================================
+// DATA
+// =====================================================
+
+const planningData = [
+
+  {
+    name: 'Regional political/planning boundaries',
+    geounit: 'ch',
+
+    children: [
+
+      {
+        name: 'Raumplanungsregionen (RPR)',
+        geounit: 'ch',
+        value: 100
+      },
+
+      {
+        name: 'Kantonal',
+        geounit: 'ch',
+
+        children: [
+          {
+            name: 'Quartieranalyse',
+            geounit: 'Zürich',
+            value: 40
+          },
+          {
+            name: 'Zonenpläne',
+            geounit: 'Bern',
+            value: 40
+          },          
+        ]
+      }
+
+    ]
+  },
+
+
+  {
+    name: 'Institutional',
+    geounit: 'root',
+
+    children: [
+
+      {
+        name: 'Cantons (NUTS-3)',
+        geounit: 'ch',
+        value: 90
+      },
+
+      {
+        name: 'Bezirke',
+        geounit: 'ch',
+        value: 70
+      },
+
+      {
+        name: 'Cantonal',
+        geounit: 'ch',
+
+        children: [
+          {
+            name: 'Wahlkreise Zürich',
+            geounit: 'Zürich',
+            value: 30
+          }
+        ]
+      }
+
+    ]
+  },
+
+
+  {
+    name: 'Andere',
+    geounit: 'root',
+
+    children: [
+
+      {
+        name: 'Postleizahlen',
+        geounit: 'ch',
+        value: 85
+      },
+
+      {
+        name: 'Fischerei und Jagd',
+        geounit: 'ch',
+
+        children: [
+          {
+            name: 'Jagdreviere',
+            geounit: 'Zürich',
+            value: 25
+          },
+          {
+            name: 'Fischereireviere',
+            geounit: 'Zürich',
+            value: 35
+          },
+        ]
+      }
+
+    ]
+  }
+
+];
+
+
+
+// =====================================================
+// MAP DATA
+// =====================================================
+
+const cantonData = [
+
+  { name: 'Zürich', value: 1 },
+
+  { name: 'Bern', value: 1 },
+
+  { name: 'Vaud', value: 1 }
+
+];
+
+
+// =====================================================
+// MAP LOADING
+// =====================================================
+
+async function loadMap() {
+
+  mapChart.showLoading();
+
+  try {
+
+    // ---------------------------------------------
+    // ch.geo.json must be in same folder
+    // ---------------------------------------------
+
+    const response =
+      await fetch('./ch.json');
+
+    const geoJSON =
+      await response.json();
+
+    echarts.registerMap('ch', geoJSON);
+
+    mapChart.hideLoading();
+
+    renderMap();
+
+  }
+
+  catch(err) {
+
+    console.error(err);
+
+    alert('Failed to load ch.json');
+
+  }
+
+}
+
+
+// =====================================================
+// MAP RENDER
+// =====================================================
+
+function renderMap() {
+
+  mapChart.setOption({
+
+    title: {
+
+      text: 'Switzerland',
+
+      left: 'center'
+
+    },
+
+    tooltip: {
+
+      trigger: 'item'
+
+    },
+
+    series: [
+
+      {
+
+        type: 'map',
+
+        map: 'ch',
+
+        roam: true,
+
+        selectedMode: false,
+
+        emphasis: {
+
+          label: {
+
+            show: true
+
+          },
+
+          itemStyle: {
+
+            areaColor: '#ffcc66'
+
+          }
+
+        },
+
+        data: cantonData
+
+      }
+
+    ]
+
+  });
+
+}
+
+
+// =====================================================
+// SUNBURST RENDER
+// =====================================================
+
+function renderSunburst(data) {
+
+  sunburstChart.setOption({
+
+    title: {
+
+      text: 'Planning Structure',
+
+      left: 'center'
+
+    },
+
+    tooltip: {
+
+      trigger: 'item'
+
+    },
+
+    series: [
+
+      {
+
+        type: 'sunburst',
+
+        radius: [0, '90%'],
+
+        sort: null,
+
+        emphasis: {
+
+          focus: 'ancestor'
+
+        },
+
+        label: {
+
+          rotate: 'radial'
+
+        },
+
+        data: data
+
+      }
+
+    ]
+
+  }, true);
+
+}
+
+
+// =====================================================
+// MAP -> SUNBURST FILTER
+// =====================================================
+
+mapChart.on('click', function(params) {
+
+  const canton = params.name;
+
+  console.log('Map clicked:', canton);
+
+  // ---------------------------------------------
+  // recursively filter tree
+  // ---------------------------------------------
+
+  function filterTree(nodes) {
+
+    let result = [];
+
+    for (const node of nodes) {
+
+      let include = false;
+
+      // direct geounit match
+      if (node.geounit === canton) {
+
+        include = true;
+
+      }
+
+      // recursive child filtering
+      let filteredChildren = [];
+
+      if (node.children) {
+
+        filteredChildren =
+          filterTree(node.children);
+
+        if (filteredChildren.length > 0) {
+
+          include = true;
+
+        }
+
+      }
+
+      if (include) {
+
+        const copy = { ...node };
+
+        if (filteredChildren.length > 0) {
+
+          copy.children = filteredChildren;
+
+        }
+
+        result.push(copy);
+
+      }
+
+    }
+
+    return result;
+
+  }
+
+  const filtered =
+    filterTree(planningData);
+
+  renderSunburst(filtered);
+
+});
+
+
+// =====================================================
+// SUNBURST -> MAP HIGHLIGHT
+// =====================================================
+
+sunburstChart.on('click', function(params) {
+
+  // ---------------------------------------------
+  // clear previous highlights
+  // ---------------------------------------------
+
+  mapChart.dispatchAction({
+
+    type: 'downplay',
+
+    seriesIndex: 0
+
+  });
+
+  // ---------------------------------------------
+  // geounit extraction
+  // ---------------------------------------------
+
+  let geounit = null;
+
+  if (params.data &&
+      params.data.geounit) {
+
+    geounit =
+      params.data.geounit;
+
+  }
+
+  // ---------------------------------------------
+  // ignore non-geographic root
+  // ---------------------------------------------
+
+  if (!geounit ||
+      geounit === 'root') {
+
+    return;
+
+  }
+
+  // ---------------------------------------------
+  // Switzerland-wide nodes
+  // ---------------------------------------------
+
+  if (geounit === 'ch') {
+
+    cantonData.forEach(canton => {
+
+      mapChart.dispatchAction({
+
+        type: 'highlight',
+
+        seriesIndex: 0,
+
+        name: canton.name
+
+      });
+
+    });
+
+    return;
+
+  }
+
+  // ---------------------------------------------
+  // highlight single canton
+  // ---------------------------------------------
+
+  mapChart.dispatchAction({
+
+    type: 'highlight',
+
+    seriesIndex: 0,
+
+    name: geounit
+
+  });
+
+});
+
+
+// =====================================================
+// RESET
+// =====================================================
+
+mapChart.getZr().on('dblclick', function() {
+
+  // restore full sunburst
+  renderSunburst(planningData);
+
+  // remove highlights
+  mapChart.dispatchAction({
+
+    type: 'downplay',
+
+    seriesIndex: 0
+
+  });
+
+});
+
+
+// =====================================================
+// INITIALIZE
+// =====================================================
+
+renderSunburst(planningData);
+
+loadMap();
+
+
+// =====================================================
+// RESPONSIVE
+// =====================================================
+
+window.addEventListener('resize', function () {
+
+  mapChart.resize();
+
+  sunburstChart.resize();
+
+});
+
+</script>
+
+</body>
+</html>
